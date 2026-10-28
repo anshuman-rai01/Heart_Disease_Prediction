@@ -37,7 +37,7 @@ jobs:
                   with urllib.request.urlopen(f"{base_url}/", timeout=2) as response:
                       assert response.status == 200
                       break
-          except (urllib.error.URLError, TimeoutError, ConnectionResetError):
+              except (urllib.error.URLError, TimeoutError, ConnectionResetError):
                   if attempt == 29:
                       raise
                   time.sleep(2)
