@@ -1,0 +1,70 @@
+name: Heart Disease API CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build --tag heart-disease-api:ci .
+
+      - name: Start API container
+        run: docker run --detach --rm --name heart-disease-api -p 8000:8000 heart-disease-api:ci
+
+      - name: Check health and prediction endpoints
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          import urllib.error
+          import urllib.request
+
+          base_url = "http://127.0.0.1:8000"
+          for attempt in range(30):
+              try:
+                  with urllib.request.urlopen(f"{base_url}/", timeout=2) as response:
+                      assert response.status == 200
+                      break
+              except (urllib.error.URLError, TimeoutError):
+                  if attempt == 29:
+                      raise
+                  time.sleep(2)
+
+          payload = {
+              "age": 63, "sex": 1, "cp": 3, "trestbps": 145,
+              "chol": 233, "fbs": 1, "restecg": 0, "thalach": 150,
+              "exang": 0, "oldpeak": 2.3, "slope": 0, "ca": 0, "thal": 1
+          }
+          request = urllib.request.Request(
+              f"{base_url}/predict",
+              data=json.dumps(payload).encode(),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=10) as response:
+              result = json.load(response)
+              assert response.status == 200
+              assert result["prediction"] in (0, 1)
+              assert 0 <= result["confidence"] <= 1
+              print(result)
+          PY
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs heart-disease-api
+
+      - name: Stop API container
+        if: always()
+        run: docker stop heart-disease-api || true
