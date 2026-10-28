@@ -13,7 +13,7 @@ Open `http://localhost:8000/docs` to try the API interactively. The health route
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/ci.yml` builds the Docker image, starts the API, and checks the health and prediction endpoints for pushes and pull requests to `main`.
+The workflow in `.github/workflows/ci.yml` builds the Docker image, starts the API, and checks the health and prediction endpoints for pushes and pull requests to `master`.
 
 ## Training
 
